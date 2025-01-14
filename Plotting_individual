@@ -1,0 +1,78 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from numpy.polynomial import Polynomial
+from scipy.optimize import curve_fit
+
+#For just one file:
+file1 = 'real_deal_0point6_90deg.txt'
+xdata = np.loadtxt(file1, dtype=float, skiprows=11, usecols=0)
+ydata = np.loadtxt(file1, dtype=float, skiprows=11, usecols=1)
+
+#critical_current is defined at half of the xdata
+critical_current = xdata[len(xdata)//2]
+
+mask = xdata < critical_current
+x_background = xdata[mask]
+y_background = ydata[mask]
+
+background_fit = Polynomial.fit(x_background, y_background, deg=1)
+
+# Subtract the background fit from the data
+y_fit_background = background_fit(xdata)
+y_corrected = (ydata - y_fit_background)/(12.89/1000)
+
+#Power Law using curvefit 
+def power_law(I, *params):
+    """
+    This function defines the power law that the data will fit to. In our case this is E = E_c * (I/I_c)^n.
+    Parameters are I_c (critical current) and n. E_c is set to the critical electric field criterion. 
+    """
+    Ec = 100  # Electric field criterion (100 μV/cm)
+    Ic, N = params
+    I = np.abs(I) + 1e-9
+    return Ec * (I / Ic)**N
+
+
+def curve_fitting(xdata, ydata):
+    """
+    This function completes curve fitting using the power law. 
+     
+     returns:
+    --------
+    - I_c - critical current
+    - n - exponent of (I/I_c)^n
+    - popt - all parameters from scipy.optimize.curve_fit 
+    """
+
+    try:
+        popt, pcov = curve_fit(power_law, xdata, ydata, p0=[xdata.mean(), 10]) # can add maxfev=5000
+    except RuntimeError as e:
+        print('Fit did not converge:', e)
+        return np.nan, np.nan, [np.nan, np.nan]
+    # Print Parameters
+    for i in range(len(popt)):
+        print(f'Parameter {i}: {popt[i]:.5f}) ± {np.sqrt(pcov[i][i]):.5f}')
+
+    Ic = popt[0]
+    N = popt[1]
+
+    return Ic, N, popt
+
+x_extended = np.linspace(xdata.min(), xdata.max(), 500)
+Ic, N, popt = curve_fitting(xdata, y_corrected)
+y_fit = power_law(x_extended, *popt)
+
+plt.figure(figsize=(10, 6))
+#plt.plot(xdata, ydata, label="Original Data", color="blue")
+#plt.plot(xdata, y_fit_background, label="Background Fit", color="black", linestyle="--")
+plt.scatter(xdata, y_corrected, label="Corrected Data", color="black", s=1)
+plt.axhline(y=100, color='black', linestyle='-')
+plt.axvline(x=Ic, color='black', linestyle='-')
+plt.plot(x_extended, y_fit, 'r-', label=f"Fit: Ic={Ic:.2f}, N={N:.2f}")
+plt.xlabel("Current [A]")
+plt.ylabel("Electric field [$\mu V$/m]")
+plt.legend()
+plt.title("Electric vs Current with Background Subtraction and Power law fit")
+plt.grid()
+plt.show()
