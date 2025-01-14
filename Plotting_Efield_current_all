@@ -95,7 +95,7 @@ def load_and_plot_files(files, filter_angle=None, filter_field=None):
             print(f"Could not process file {file}: {e}")
                 # Plot the data
 
-    plt.xlabel("Magnetic Field [A/m]")
+    plt.xlabel("Current [A]")
     plt.ylabel("Electric field [$\mu V$/m]")
     plt.legend()
     plt.title("Voltage vs Current with Background Subtraction ")
