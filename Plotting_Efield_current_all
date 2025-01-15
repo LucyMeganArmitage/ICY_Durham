@@ -3,6 +3,7 @@ import numpy as np
 import os
 from numpy.polynomial import Polynomial
 from scipy.optimize import curve_fit
+from matplotlib import cm
 
 path = "C:/Users/lucym/OneDrive/Documents/Durham_Labs"
 all_files = [os.path.join(path, file).replace("\\", "/") for file in os.listdir(path) if file.startswith("real_deal") and file.endswith('.txt')]
@@ -54,8 +55,9 @@ def curve_fitting(xdata, ydata):
 # Function to load and plot data
 def load_and_plot_files(files, filter_angle=None, filter_field=None):
     plt.figure(figsize=(10, 6))
+    cmap = cm.get_cmap('YlOrRd', len(files))  # Replace 'viridis' with 'abbott' if you have it available
 
-    for file in files:
+    for i, file in enumerate(files):
         try:
             # Parse field strength and angle
             field_strength, angle = parse_file_info(file)
@@ -83,34 +85,36 @@ def load_and_plot_files(files, filter_angle=None, filter_field=None):
             Ic, N, popt = curve_fitting(xdata, y_corrected)
             y_fit = power_law(x_extended, *popt)
 
+            color = cmap(i / len(files))
             #plt.plot(xdata, ydata, label='Field strength = {0:.2f}'.format(field_strength), color="blue")
             #plt.plot(xdata, y_fit_background, label="Background Fit", color="black", linestyle="--")
             
-            plt.scatter(xdata, y_corrected, label='Field strength = {0:.2f}'.format(field_strength), color="black", s=1)
-            plt.axhline(y=100, color='black', linestyle='-')
-            plt.axvline(x=Ic, color='black', linestyle='-')
-            plt.plot(x_extended, y_fit, 'r-', label=f"Fit: Ic={Ic:.2f}")
+            plt.scatter(xdata, y_corrected, label='{0:.2f}T, '.format(field_strength)+' Ic = {0:.2f}A'.format(Ic), color=color, s=45)
+            plt.axhline(y=100, color='black', linestyle='--')
+            #plt.axvline(x=Ic, color='black', linestyle='-')
+            plt.plot(x_extended, y_fit, color='black')
         
         except Exception as e:
             print(f"Could not process file {file}: {e}")
                 # Plot the data
 
-    plt.xlabel("Current [A]")
-    plt.ylabel("Electric field [$\mu V$/m]")
-    plt.legend()
-    plt.title("Voltage vs Current with Background Subtraction ")
+    plt.xlabel("Current [A]", fontsize = 14)
+    plt.ylabel("Electric field [$\mu$V/m]", fontsize = 14)
+    plt.legend(fontsize = 14)
+    plt.tick_params(axis='both', which='major', labelsize=14)
+    #plt.title("Voltage vs Current with Background Subtraction ")
     plt.grid()
     plt.show()
   
 # Example usage:
 # Plot all files with angle 90 degrees
-load_and_plot_files(all_files, filter_angle=90)
+load_and_plot_files(all_files, filter_angle=40)
 
 # # Plot all files with field strength 0.6
 # load_and_plot_files(all_files, filter_field=0.6)
 
 # # Plot all files without any filtering
-# #load_and_plot_files(all_files)
+#load_and_plot_files(all_files)
 
 
 
